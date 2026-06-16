@@ -1,0 +1,102 @@
+# ==============================================================================
+# JIMNA.HUB TRADING CORE - BOT INSPECTION SUITE
+# ==============================================================================
+
+def get_trading_signal(strategy, market_data, config):
+    """
+    Consolidated logic for all supported bots.
+    market_data includes: last_digit, rsi, macd, volatility, trend, etc.
+    """
+    
+    # --- 1. PARITY BOTS (Even / Odd) ---
+    if strategy == 'Even':
+        if market_data['ai_confidence'] >= config['filter'] or market_data['parity_score'] > 55:
+            return 'DIGITEVEN'
+            
+    elif strategy == 'Odd':
+        if market_data['ai_confidence'] >= config['filter'] or market_data['parity_score'] < 45:
+            return 'DIGITODD'
+            
+    elif strategy == 'Even/Odd':
+        # Predictive parity based on micro-trend velocity
+        pred = last_digit + 1 if trend == 'UP' else (last_digit - 1 if trend == 'DOWN' else last_digit)
+        return 'DIGITEVEN' if pred % 2 == 0 else 'DIGITODD'
+
+    # --- 2. PYTHON SERIES (Advanced Probability) ---
+    elif strategy == 'Python Ultimate E/O':
+        # Advanced pattern recognition & parity momentum tracking
+        recent_25 = market_data['history_parity'] # list of booleans (is_even)
+        switches = sum(1 for i in range(1, len(recent_25)) if recent_25[i] != recent_25[i-1])
+        pattern_entropy = switches / len(recent_25)
+        
+        if pattern_entropy > 0.75:   # High alternation - Play the switch
+            return 'DIGITODD' if market_data['is_even'] else 'DIGITEVEN'
+        elif pattern_entropy < 0.28: # High clustering - Play the trend
+            return 'DIGITEVEN' if market_data['is_even'] else 'DIGITODD'
+            
+    elif strategy == 'Python Fast E/O':
+        # Aggressive parity scaling
+        if market_data['ai_confidence'] >= (config['filter'] - 15):
+            return 'DIGITEVEN' if last_digit % 2 == 0 else 'DIGITODD'
+
+    elif strategy == 'Python Safe E/O':
+        # Wait for 3 consecutive matches before entry
+        r3 = market_data['history_parity'][-3:]
+        if all(r3): return 'DIGITEVEN'
+        if all(not v for v in r3): return 'DIGITODD'
+
+    elif strategy == 'Python Bias O/U':
+        # Statistical mean-based digit over/under
+        avg_digit = sum(market_data['history_digits'][-10:]) / 10
+        if avg_digit > 5.5: return ('DIGITOVER', 4)
+        elif avg_digit < 3.5: return ('DIGITUNDER', 4)
+
+    # --- 3. MARKET FLOW & ENTROPY ---
+    elif strategy == 'Alternate':
+        # Counter-entropy for explosive volatility
+        if market_data['volatility'] > 55:
+            return 'DIGITODD' if last_digit % 2 == 0 else 'DIGITEVEN'
+
+    elif strategy == 'Flow Market':
+        # Clustering for low-volatility trending markets
+        if market_data['volatility'] < 45:
+            return 'DIGITEVEN' if last_digit % 2 == 0 else 'DIGITODD'
+
+    # --- 4. SMART & SNIPER (Mean Reversion) ---
+    elif strategy == 'Smart O/U':
+        # RSI and Stochastic Over/Under
+        if market_data['rsi'] > 65 or market_data['stoch_k'] > 80: return 'DIGITUNDER'
+        elif market_data['rsi'] < 35 or market_data['stoch_k'] < 20: return 'DIGITOVER'
+
+    elif strategy == 'Sniper Switch':
+        # Precision reversal on broken streaks (Streak-4 reset)
+        r4 = market_data['history_parity'][-4:]
+        if r4[0] == r4[1] == r4[2] and r4[3] != r4[2]:
+            return 'DIGITEVEN' if r4[3] else 'DIGITODD'
+
+    # --- 5. TECHNICAL RISE/FALL (Price Action) ---
+    elif strategy == 'Momentum Rise/Fall':
+        if market_data['momentum'] > 70 and trend != 'NEUTRAL':
+            return 'CALL' if trend == 'UP' else 'PUT'
+
+    elif strategy == 'Reversal Rise/Fall':
+        if market_data['mean_reversion'] > 75:
+            return 'PUT' if trend == 'UP' else 'CALL'
+
+    elif strategy == 'Forex Scalper Pro':
+        # RSI-MACD Divergence recovery
+        if market_data['rsi'] < 35 and market_data['macd_hist'] > 0: return 'CALL'
+        if market_data['rsi'] > 65 and market_data['macd_hist'] < 0: return 'PUT'
+
+    # --- 6. HIGH-REWARD DIGITS ---
+    elif strategy == 'Digit Diff':
+        # Avoid the target digit with a safety filter
+        if market_data['ai_confidence'] >= (config['filter'] - 10):
+            return ('DIGITDIFF', config['target'])
+
+    elif strategy == 'Digit Match':
+        # Precision match targeting
+        if market_data['ai_confidence'] >= (config['filter'] + 10):
+            return ('DIGITMATCH', config['target'])
+
+    return None # No Signal
